@@ -26,7 +26,7 @@ The program powers up and sets the clock time to 01:23, the alarm time to 04:56,
 
 ## Button 1 (BTN1) is connected to ESP32 GPIO34
 
-When BTN1 is pressed the alarm time is shown for 5 seconds. After 5 seconds the normal clock time display resumes. If the alarm is off, the display shows \--:\-- and the alarm dot is off.
+When BTN1 is pressed the alarm time is shown for 5 seconds. After 5 seconds the normal clock time display resumes. If the alarm is off, the display shows \--:\-- for 5 seconds. 
 
 ## Button 2 (BTN2) is connected to ESP32 GPIO35
 
