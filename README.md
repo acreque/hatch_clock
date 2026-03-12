@@ -1,94 +1,44 @@
-# Hatch Dot-Matrix Alarm Clock
+# Overview
 
-ESP32 firmware for a 32×8 dot-matrix LED alarm clock display.
+I decided to take the assignment all the way to something that runs on real hardware since I had an ESP32 board with buttons that I use for prototyping code. Below are the assumptions I made and a description of the behavior of the run time behavior of the code. I chose this approach because it showed how I go about testing. I always lean toward hardware-in-the-loop testing and typically use either a UART to prove out my code or a few GPIO bits and an oscilloscope.
 
----
+# Assumptions
 
-## Hardware Connections
+1.  A dot matrix display comprised of 32 columns of dots (i.e., LEDs), where each column is 8 dots tall, is used for a clock display. In other words, it is an array that is 32x8 dots in size.
 
-| Signal       | ESP32 GPIO | Notes                                    |
-|--------------|-----------|------------------------------------------|
-| UART2 TX     | GPIO 17   | Serial data to dot-matrix driver          |
-| LOAD (latch) | GPIO 16   | Pulse HIGH→LOW to latch all 32 columns    |
-| BTN1         | GPIO 34   | Active-low, internal pull-up; show alarm  |
-| BTN2         | GPIO 35   | Active-low, internal pull-up; toggle alarm|
+2.  Columns are numbered 0 through 31 from left to right. Row are numbered 0 through 7 with row zero at the top.
 
-> **Note:** GPIO 34 and 35 are input-only pins on ESP32 – suitable for buttons.
+3.  For a clock 4 digits are needed, which means each digit is comprised of an 8x8 sub-array of LEDs.
 
----
+4.  Because we will want the ability to annotate each digit using dots above or on the right side of each digit, the top row of dots and the 3 columns of dots on the right of each digit are reserved for this. Therefore, actual characters or fonts are limited to 5x7 dots.
 
-## Display Layout
+5.  The colon separator uses the middle column of the 3 annotation columns on the right side of each digit.
 
-```
- Digit 0   Digit 1   Digit 2   Digit 3
-[col 0-7] [col 8-15][col 16-23][col 24-31]
+6.  The hardware driver for the dot matrix supports the ability to update each of the 32 columns individually.
 
-Each digit block:
-  cols 0-4  = 5-wide font glyph
-  col  5    = annotation (unused)
-  col  6    = colon dots (between digit pairs 1 and 2)
-  col  7    = annotation (unused)
+7.  The hardware driver buffers all the column data so that all 32 columns can be loaded into the buffer without changing the illumination state of the dots.
 
-Row 0 of col 31 = alarm indicator dot (upper-right corner)
-```
+8.  The buffer is loaded using a serial interface where the column number and dot states are specified in each message.
 
-### Serial Protocol
+9.  The hardware driver has a LOAD bit. Once the buffer is fully loaded with data for all 32 columns its contents can applied to the entire dot matrix by pulsing the LOAD bit.
 
-Each display update sends **32 two-byte messages** over UART2:
+Based on these assumptions, I created an ESP32 program that uses UART2 as the serial interface to the hardware driver and GPIO16 for the LOAD signal. The program is a functional clock that displays the hours and minutes in HH:MM format where HH is the 2-digit hour and MM is the 2-digit minute. The clock is an alarm clock and the dot in the upper right corner of the dot matix is used to indicate the state of the alarm. If the dot is illuminated the alarm is set.
 
-```
-Byte 0: column number  (0x00 – 0x1F)
-Byte 1: dot pattern    (bit7 = row 0 top, bit0 = row 7 bottom)
-```
+The program powers up and sets the clock time to 01:23, the alarm time to 04:56, and the alarm state to off. The dot matrix is updated each second with the clock time. Two buttons are used to control the behavior of the clock.
 
-After all 32 columns are sent, **LOAD** is pulsed HIGH then LOW to latch.
+## Button 1 (BTN1) is connected to ESP32 GPIO34
 
----
+When BTN1 is pressed the alarm time is shown for 5 seconds. After 5 seconds the normal clock time display resumes. If the alarm is off, the display shows \--:\-- and the alarm dot is off.
 
-## Behaviour
+## Button 2 (BTN2) is connected to ESP32 GPIO35
 
-| Event           | Display                             | Alarm dot         |
-|-----------------|-------------------------------------|-------------------|
-| Power-up        | `01:23` (clock starts at 1:23)      | OFF               |
-| Normal run      | `HH:MM` updating every second, colon blinks | Reflects alarm state |
-| BTN1 press      | Alarm time `04:56` for 5 s; if alarm off: `--:--` | Reflects alarm state |
-| BTN2 press      | `1   ` (digit 0 = "1", rest blank) for 5 s | Reflects **toggled** state |
-| After 5 s       | Returns to normal clock             | —                 |
+When BTN2 is pressed, the state of the alarm toggles; meaning if it was off, it turns on and if it was on it turns off. A BTN2 press also displays the value of 1 in the most significant digit of the hour and nothing in the other digits. The state of the alarm dot always reflects the toggled state. The display remains in this state for 5 seconds and then resumes normal clock operation.
 
----
+# Program Architecture
 
-## Build & Flash (VS Code + ESP-IDF Extension)
+The program is broken into two tasks; ```clock_task``` and ```display_task```. ```clock_task``` is the higher level clock state manager that processes button presses and keeps track of time. ```display_task``` is responsible for rendering the desire content on the dot matrix. It manages 3 different render modes. One mode is the normal clock mode. The other two modes are temporary modes that only last for 5 seconds each. One of them is for displaying the alarm time settings and the other is for displaying the single digit number.
 
-1. Open this folder in VS Code.
-2. The ESP-IDF extension will detect `CMakeLists.txt` automatically.
-3. Select your target: `ESP32`.
-4. Click **Build** (or `Ctrl+Shift+B`).
-5. Click **Flash** and select the correct COM port.
+The most critical data structure is the ```g_clock_state```. It stores the clock and alarm times as well as the alarm state (on/off), render mode, and render mode timer. Because the ```clock_task``` writes the ```g_clock_state``` and the ```display_task``` reads it there is an inherent race condition. Writes must complete before reads occur. To manage this an mutex is used to protect the state.
 
-Alternatively, using the command line:
+The ```clock_task``` takes the mutex each time a button press occurs, the clock value changes, or the mode timer expires. The display task takes the mutex once per render cycle so it can get a clean snapshot before sends new render data the hardware driver.
 
-```bash
-idf.py set-target esp32
-idf.py build
-idf.py -p /dev/cu.usbserial-1430 flash monitor
-```
-
----
-
-## Project Structure
-
-```
-hatch-dotmatrix/
-├── CMakeLists.txt          # Root build file
-├── sdkconfig.defaults      # Default Kconfig options
-├── README.md
-└── main/
-    ├── CMakeLists.txt      # Component sources
-    ├── main.c              # app_main: init + task spawn
-    ├── clock_common.h      # Shared types, pin defs, globals
-    ├── clock_task.c/h      # Task 1: timekeeping + buttons + mode FSM
-    ├── display_task.c/h    # Task 2: rendering engine
-    ├── dotmatrix_driver.c/h# UART2 + LOAD GPIO driver, frame-buffer API
-    ├── font5x7.c/h         # 5×7 bitmap font (digits 0-9, dash, blank)
-    └── ...
-```
