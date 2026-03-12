@@ -1,0 +1,3 @@
+# Default SDK config for hatch-dotmatrix clock project
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+CONFIG_FREERTOS_HZ=1000
