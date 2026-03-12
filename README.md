@@ -1,6 +1,6 @@
 # Overview
 
-I decided to take the assignment all the way to something that runs on real hardware since I had an ESP32 board with buttons that I use for prototyping code. Below are the assumptions I made and a description of the behavior of the run time behavior of the code. I chose this approach because it showed how I go about testing. I always lean toward hardware-in-the-loop testing and typically use either a UART to prove out my code or a few GPIO bits and an oscilloscope.
+I decided to take the assignment all the way to something that runs on real hardware since I had an ESP32 board with buttons that I use for prototyping code. Below are the assumptions I made and a description of the run-time behavior of the code. I chose this approach because it showed how I go about testing. I always lean toward hardware-in-the-loop testing and typically use either a UART to prove out my code or a few GPIO bits and an oscilloscope.
 
 # Assumptions
 
@@ -41,4 +41,6 @@ The program is broken into two tasks; ```clock_task``` and ```display_task```. `
 The most critical data structure is the ```g_clock_state```. It stores the clock and alarm times as well as the alarm state (on/off), render mode, and render mode timer. Because the ```clock_task``` writes the ```g_clock_state``` and the ```display_task``` reads it there is an inherent race condition. Writes must complete before reads occur. To manage this an mutex is used to protect the state.
 
 The ```clock_task``` takes the mutex each time a button press occurs, the clock value changes, or the mode timer expires. The display task takes the mutex once per render cycle so it can get a clean snapshot before sends new render data the hardware driver.
+
+
 
