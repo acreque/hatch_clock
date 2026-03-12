@@ -10,7 +10,7 @@
 static const char *TAG = "clock_task";
 
 // ─── Shared state (defined here, extern in clock_common.h) ───────────────────
-clock_state_t    g_clock_state;
+clock_state_t     g_clock_state;
 SemaphoreHandle_t g_state_mutex;
 
 // ─── Button helpers ───────────────────────────────────────────────────────────
