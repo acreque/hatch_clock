@@ -1,4 +1,22 @@
-# Overview
+# Functional Requirements
+- The default display shows the current time in HH:MM format.
+  - A single dot in the upper right corner of the display is used to show whether there is an alarm set.
+- Temporarily show the alarm time in response to a button being pressed on the clock.
+  - If no alarm is set, the display should show: --:--
+- Temporarily show a single digit number in response to a button being pressed on the
+# Do
+- Write the code in C.
+- Assume that a hardware-level driver for the dot matrix display already exists.
+  - Use mock functions for any hardware or driver functionality you want to represent.
+- Assume that the display module receives its direction from a higher level state manager.
+  - Use mock functions for any RTOS-based functionality you want to represent.
+- Use your judgement if anything is unclear. Explain your reasoning.
+# Deliverables
+- Working C code (doesn’t need to compile/run perfectly – we want to see your approach).
+- Brief comments or notes explaining
+- At least one unit test demonstrating your testing philosophy.
+
+# Solution Overview
 
 I decided to take the assignment all the way to something that runs on real hardware since I had an ESP32 board with buttons that I use for prototyping code. Below are the assumptions I made and a description of the run-time behavior of the code. I chose this approach because it showed how I go about testing. I always lean toward hardware-in-the-loop testing and typically use either a UART to prove out my code or a few GPIO bits and an oscilloscope.
 
@@ -36,11 +54,11 @@ When BTN2 is pressed, the state of the alarm toggles; meaning if it was off, it 
 
 # Program Architecture
 
-The program is broken into two tasks; ```clock_task``` and ```display_task```. ```clock_task``` is the higher level clock state manager that processes button presses and keeps track of time. ```display_task``` is responsible for rendering the desire content on the dot matrix. It manages 3 different render modes. One mode is the normal clock mode. The other two modes are temporary modes that only last for 5 seconds each. One of them is for displaying the alarm time settings and the other is for displaying the single digit number.
+The program is broken into two tasks; ```clock_task``` and ```display_task```. ```clock_task``` is the higher level clock state manager that processes button presses and keeps track of time. ```display_task``` is responsible for rendering the desired content on the dot matrix. It manages 3 different render modes. One mode is the normal clock mode. The other two modes are temporary modes that only last for 5 seconds each. One of them is for displaying the alarm time settings and the other is for displaying the single digit number.
 
 The most critical data structure is the ```g_clock_state```. It stores the clock and alarm times as well as the alarm state (on/off), render mode, and render mode timer. Because the ```clock_task``` writes the ```g_clock_state``` and the ```display_task``` reads it there is an inherent race condition. Writes must complete before reads occur. To manage this an mutex is used to protect the state.
 
-The ```clock_task``` takes the mutex each time a button press occurs, the clock value changes, or the mode timer expires. The display task takes the mutex once per render cycle so it can get a clean snapshot before sends new render data the hardware driver.
+The ```clock_task``` takes the mutex each time a button press occurs, the clock value changes, or the mode timer expires. The display task takes the mutex once per render cycle so it can get a clean snapshot before it sends new render data the hardware driver.
 
 
 
