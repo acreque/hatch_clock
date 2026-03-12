@@ -20,9 +20,9 @@
 
 I decided to take the assignment all the way to something that runs on real hardware since I had an ESP32 board with buttons that I use for prototyping code. Below are the assumptions I made and a description of the run-time behavior of the code. I chose this approach because it showed how I go about testing. I always lean toward hardware-in-the-loop testing and typically use either a UART to prove out my code or a few GPIO bits and an oscilloscope.
 
-Based on the following assumptions, I created an ESP32 program using vscode and the ESP-IDF extension. The program uses UART2 as the serial interface to the hardware driver and GPIO16 for the LOAD signal. The program is a functional clock that displays the hours and minutes in HH:MM format. The clock supports an alarm and the dot in the upper right corner is used to indicate the state of the alarm. 
+Based on the following assumptions, I created an ESP32 program using vscode and the ESP-IDF extension. The program uses UART2 as the serial interface to the hardware driver and GPIO16 for the LOAD signal to latch data into the display dot array. The program is a functional clock that displays the hours and minutes in HH:MM format. The clock supports an alarm and the dot in the upper right corner is used to indicate the state of the alarm. 
 
-The program powers up and sets the clock time to 01:23, the alarm time to 04:56, and the alarm state to off. The hardware driver is loaded 2x per second. Two buttons are used to control the behavior of the clock as follows:
+The program powers up and sets the clock time to 01:23, the alarm time to 04:56, and the alarm state to off. The hardware driver is loaded with new dot data 2 times per second. Two buttons are used to control the behavior of the clock as follows:
 
 ## Button 1 (BTN1) is connected to ESP32 GPIO34
 
