@@ -38,7 +38,7 @@ The program is broken into two tasks; ```clock_task``` and ```display_task```. `
 
 The most critical data structure is the ```g_clock_state```. It stores the clock and alarm times as well as the alarm state (on/off), render mode, and render mode timer. Because the ```clock_task``` writes the ```g_clock_state``` and the ```display_task``` reads it, there is an inherent race condition. Reads and writes must have exclusive access to ```g_clock_state``` when they need it. To manage this the ```g_state_mutex``` mutex is used to protect the state structure.
 
-The ```clock_task``` ***takes*** the mutex each time a button press occurs, the clock value changes, or the render mode timer expires. The ```clock_task``` mutex ***give*** logic condition-less so the ```display_task``` cannot be starved. The ```display_task``` ***takes*** the mutex 2x per second so it can get a clean snapshot of ```g_clock_state``` before it sends new render data the hardware driver. The ```clock_task``` cannot be staved because the ```display_task``` ***give*** logic is condition-less as well. 
+The ```clock_task``` ***takes*** the mutex each time a button press occurs, the clock value changes, or the render mode timer expires. The ```clock_task``` mutex ***give*** logic is condition-less so the ```display_task``` cannot be starved. The ```display_task``` ***takes*** the mutex 2x per second so it can get a clean snapshot of ```g_clock_state``` before it sends new render data the hardware driver. The ```clock_task``` cannot be staved because the ```display_task``` ***give*** logic is condition-less as well. 
 
 # Assumptions
 
