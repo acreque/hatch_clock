@@ -29,12 +29,12 @@ static void render_time(int hour, int min, bool alarm_dot, bool colon_on)
 {
     dotmatrix_clear();
 
-    char label[24];   // generously sized to satisfy -Werror=format-truncation
+    char label[24];   // this is used for debugging only to facilitate testing.
     if (hour < 0 || min < 0) {
         for (int slot = 0; slot < 4; slot++) {
             dotmatrix_draw_glyph(slot, font5x7[FONT5X7_DASH]);
         }
-        snprintf(label, sizeof(label), "--:--");
+        snprintf(label, sizeof(label), "--:--"); 
     } else {
         render_digit(0, hour / 10);
         render_digit(1, hour % 10);
